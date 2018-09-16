@@ -9,11 +9,13 @@ Created on Thu Sep 13 23:00:27 2018
 from os import chdir
 import pandas as pd
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import seaborn as sns
 import numpy as np
 import pymysql
 from pandasql import sqldf
-
+import statsmodels.api as sm
+from sklearn.cluster import KMeans
 
 # Set working directory
 wd="/Users/geoffrey.kip/Projects/uci_diabetes"
@@ -115,6 +117,23 @@ diabetes_df.isnull().sum()
 diabetes_df.isna().sum()
 
 #Exploratory analysis time 
+# How many encounters by patient
+q="""Select 
+     patient_nbr,
+     count(distinct encounter_id) as encounters
+     from diabetes_df
+     group by 1
+     order by 2 desc"""
+patient_encounters = sqldf(q)
+       
+q="""Select AVG(encounters) as average_encounters from (Select 
+     patient_nbr,
+     count(distinct encounter_id) as encounters
+     from diabetes_df
+     group by 1
+     order by 2 desc)"""
+avg_patient_encounters = sqldf(q)
+
 #Mean figures medications etc
 q = """Select 
        AVG(num_procedures) as mean_num_procedures,
@@ -156,7 +175,17 @@ qb = """Select
        group by 1"""
 average_measurements_by_readmission = sqldf(qb)
 
-              
+
+q0 = """Select weight, 
+        count (distinct patient_nbr) as total_individuals, 
+        count(distinct (case when readmitted="<30"then patient_nbr else 0 end)) as readmitted_individuals
+       from diabetes_df group by 1 
+       order by readmitted_individuals desc"""
+weight_readmitted_patients = sqldf(q0)
+weight_readmitted_patients["percentage_of_individuals_readmitted"]= weight_readmitted_patients['readmitted_individuals']/weight_readmitted_patients['total_individuals'] * 100
+weight_readmitted_patients= weight_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
+print(weight_readmitted_patients)
+
 # Race distribution of patients against readmission within 30 days
 q1 = """Select race, 
         count (distinct patient_nbr) as total_individuals, 
@@ -207,3 +236,145 @@ diabetes_readmitted_patients["percentage_of_individuals_readmitted"]= diabetes_r
 diabetes_readmitted_patients= diabetes_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
 print(diabetes_readmitted_patients)
 
+# Does admission type affect readmission within 30 days?
+q5 = """Select admission_type_id_description, 
+        count (distinct patient_nbr) as total_individuals, 
+        count(distinct (case when readmitted="<30"then patient_nbr else 0 end)) as readmitted_individuals
+       from diabetes_df group by 1 
+       order by readmitted_individuals desc"""
+admission_readmitted_patients = sqldf(q5)
+admission_readmitted_patients["percentage_of_individuals_readmitted"]= admission_readmitted_patients['readmitted_individuals']/admission_readmitted_patients['total_individuals'] * 100
+admission_readmitted_patients= admission_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
+print(admission_readmitted_patients)
+
+# Does discharge type affect readmission within 30 days?
+q6= """Select discharge_disposition_id_description, 
+        count (distinct patient_nbr) as total_individuals, 
+        count(distinct (case when readmitted="<30"then patient_nbr else 0 end)) as readmitted_individuals
+       from diabetes_df group by 1 
+       order by readmitted_individuals desc"""
+discharge_readmitted_patients = sqldf(q6)
+discharge_readmitted_patients["percentage_of_individuals_readmitted"]= discharge_readmitted_patients['readmitted_individuals']/discharge_readmitted_patients['total_individuals'] * 100
+discharge_readmitted_patients= discharge_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
+print(discharge_readmitted_patients)
+
+# Does discharge type affect readmission within 30 days?
+q7= """Select admission_source_id_description, 
+        count (distinct patient_nbr) as total_individuals, 
+        count(distinct (case when readmitted="<30"then patient_nbr else 0 end)) as readmitted_individuals
+       from diabetes_df group by 1 
+       order by readmitted_individuals desc"""
+admission_source_readmitted_patients = sqldf(q7)
+admission_source_readmitted_patients["percentage_of_individuals_readmitted"]= admission_source_readmitted_patients['readmitted_individuals']/admission_source_readmitted_patients['total_individuals'] * 100
+admission_source_readmitted_patients= admission_source_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
+print(admission_source_readmitted_patients)
+
+# Does discharge type affect readmission within 30 days?
+q8= """Select medical_specialty, 
+        count (distinct patient_nbr) as total_individuals, 
+        count(distinct (case when readmitted="<30"then patient_nbr else 0 end)) as readmitted_individuals
+       from diabetes_df group by 1 
+       order by readmitted_individuals desc"""
+medical_speciality_readmitted_patients = sqldf(q8)
+medical_speciality_readmitted_patients["percentage_of_individuals_readmitted"]= medical_speciality_readmitted_patients['readmitted_individuals']/medical_speciality_readmitted_patients['total_individuals'] * 100
+medical_speciality_readmitted_patients= medical_speciality_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
+print(medical_speciality_readmitted_patients)
+
+# Does A1cresult affect readmission within 30 days
+q9= """Select A1Cresult, 
+        count (distinct patient_nbr) as total_individuals, 
+        count(distinct (case when readmitted="<30"then patient_nbr else 0 end)) as readmitted_individuals
+       from diabetes_df group by 1 
+       order by readmitted_individuals desc"""
+a1c_readmitted_patients = sqldf(q9)
+a1c_readmitted_patients["percentage_of_individuals_readmitted"]= a1c_readmitted_patients['readmitted_individuals']/a1c_readmitted_patients['total_individuals'] * 100
+a1c_readmitted_patients= a1c_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
+print(a1c_readmitted_patients)
+
+# Did change in medications lead to readmission?
+q10= """Select any_change, 
+        count (distinct patient_nbr) as total_individuals, 
+        count(distinct (case when readmitted="<30"then patient_nbr else 0 end)) as readmitted_individuals
+       from diabetes_df group by 1 
+       order by readmitted_individuals desc"""
+change_readmitted_patients = sqldf(q10)
+change_readmitted_patients["percentage_of_individuals_readmitted"]= change_readmitted_patients['readmitted_individuals']/change_readmitted_patients['total_individuals'] * 100
+change_readmitted_patients= change_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
+print(change_readmitted_patients)
+
+# Did glucose serum levels lead to readmission?
+q11= """Select max_glu_serum, 
+        count (distinct patient_nbr) as total_individuals, 
+        count(distinct (case when readmitted="<30"then patient_nbr else 0 end)) as readmitted_individuals
+       from diabetes_df group by 1 
+       order by readmitted_individuals desc"""
+gluserum_readmitted_patients = sqldf(q11)
+gluserum_readmitted_patients["percentage_of_individuals_readmitted"]= gluserum_readmitted_patients['readmitted_individuals']/gluserum_readmitted_patients['total_individuals'] * 100
+gluserum_readmitted_patients= gluserum_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
+print(gluserum_readmitted_patients)
+
+# Look at all different medications
+medications=['metformin', 'repaglinide', 'nateglinide', 'chlorpropamide',
+       'glimepiride', 'acetohexamide', 'glipizide', 'glyburide', 'tolbutamide',
+       'pioglitazone', 'rosiglitazone', 'acarbose', 'miglitol', 'troglitazone',
+       'tolazamide', 'examide', 'citoglipton', 'insulin',
+       'glyburide_metformin', 'glipizide_metformin',
+       'glimepiride_pioglitazone', 'metformin_rosiglitazone',
+       'metformin_pioglitazone']
+
+diabetes_df["medications_status"] = np.where(diabetes_df[medications][diabetes_df == "Steady"].any(1), 'steady', 
+                             np.where(diabetes_df[medications][diabetes_df == "Up"].any(1), 'up' ,
+                             np.where(diabetes_df[medications][diabetes_df == "Down"].any(1), 'down',
+                             np.where(diabetes_df[medications][diabetes_df == "No"].any(1), 'not_prescribed','unknown'))))
+
+# =============================================================================
+# medications1=['metformin', 'repaglinide', 'nateglinide', 'chlorpropamide',
+#        'glimepiride', 'acetohexamide', 'glipizide', 'glyburide', 'tolbutamide',
+#        'pioglitazone', 'rosiglitazone', 'acarbose', 'miglitol', 'troglitazone',
+#        'tolazamide', 'examide', 'citoglipton', 'insulin',
+#        'glyburide_metformin', 'glipizide_metformin',
+#        'glimepiride_pioglitazone', 'metformin_rosiglitazone',
+#        'metformin_pioglitazone','medications_status']
+# 
+# check= diabetes_df[medications1]
+# =============================================================================
+
+# Did medications_status lead to readmission?
+q12= """Select medications_status, 
+        count (distinct patient_nbr) as total_individuals, 
+        count(distinct (case when readmitted="<30"then patient_nbr else 0 end)) as readmitted_individuals
+       from diabetes_df group by 1 
+       order by readmitted_individuals desc"""
+medication_status_readmitted_patients = sqldf(q12)
+medication_status_readmitted_patients["percentage_of_individuals_readmitted"]= medication_status_readmitted_patients['readmitted_individuals']/medication_status_readmitted_patients['total_individuals'] * 100
+medication_status_readmitted_patients= medication_status_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
+print(medication_status_readmitted_patients)
+
+# Do some clustering and modeling
+# simple statical regression model to understand beta coefficients for some data points
+train_cols=['num_procedures', 'num_medications','num_lab_procedures','time_in_hospital','number_outpatient',
+               'number_emergency','number_diagnoses','number_inpatient']
+# Recode readmitted to binary for model
+diabetes_df["readmitted"]= np.where(diabetes_df["readmitted"] == '<30',1,0)
+logit = sm.Logit(diabetes_df['readmitted'], diabetes_df[train_cols])
+
+# fit the model
+result = logit.fit()
+print (result.summary2())
+
+# Clustering kmeans on same features
+# Initializing KMeans
+kmeans = KMeans(n_clusters=4)
+# Fitting with inputs
+kmeans = kmeans.fit(diabetes_df[train_cols])
+# Predicting the clusters
+labels = kmeans.predict(diabetes_df[train_cols])
+# Getting the cluster centers
+C = kmeans.cluster_centers_
+X=diabetes_df[train_cols]
+y=diabetes_df["readmitted"]
+
+fig = plt.figure()
+ax = Axes3D(fig)
+ax.scatter(X.iloc[:, 0], X.iloc[:, 1], X.iloc[:, 2], c=y)
+ax.scatter(C[:, 0], C[:, 1], C[:, 2], marker='*', c='#050505', s=1000)
