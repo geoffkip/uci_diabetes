@@ -31,6 +31,28 @@ db = 'hospitals'
 # Connect to sql database with data inside
 conn = pymysql.connect(host= host, port=port, user= user, passwd='', db=db)
 
+
+#Graph function
+
+def graph(labels=None,data=None,color=None,title=None,ylabel=None,y_pos=None,graph_type=None):
+    if graph_type == "bar":
+        fig= plt.figure()
+        ax= fig.add_subplot(111)
+        ax.bar(labels,data, align='center',color=color,alpha=0.5)
+        ax.set_facecolor('gray')
+        plt.xticks(y_pos, labels,rotation=90)
+        plt.ylabel(ylabel)
+        plt.title(title)
+        plt.show()
+    elif graph_type == "pie":
+        fig=plt.figure()
+        ax=fig.add_subplot(111)
+        ax.pie(data, labels=labels, autopct='%1.1f%%',
+                shadow=True, startangle=90)
+        ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+        ax.set_title(title)
+        plt.show()
+
 # Read full dataset and map different id codes
 diabetes_df=pd.read_sql("""SELECT * ,
 CASE
@@ -175,6 +197,41 @@ qb = """Select
        group by 1"""
 average_measurements_by_readmission = sqldf(qb)
 
+labels = (np.array(average_measurements_by_readmission.readmitted))
+y_pos=np.arange(len(labels))
+
+graph(labels=labels,data=average_measurements_by_readmission['mean_num_procedures'],
+      color='blue',title='Mean number of procedures',ylabel='Value',y_pos=y_pos,
+      graph_type='bar')
+
+graph(labels=labels,data=average_measurements_by_readmission['mean_num_medications'],
+      color='blue',title='Mean number of medications',ylabel='Value',y_pos=y_pos,
+      graph_type='bar')
+
+graph(labels=labels,data=average_measurements_by_readmission['mean_num_lab_procedures'],
+      color='blue',title='Mean number of lab procedures',ylabel='Value',y_pos=y_pos,
+      graph_type='bar')
+
+graph(labels=labels,data=average_measurements_by_readmission['average_time_in_hospital'],
+      color='blue',title='Avg time in hospital',ylabel='Value',y_pos=y_pos,
+      graph_type='bar')
+
+graph(labels=labels,data=average_measurements_by_readmission['mean_outpatient_visits'],
+      color='blue',title='Mean outpatient visits',ylabel='Value',y_pos=y_pos,
+      graph_type='bar')
+
+graph(labels=labels,data=average_measurements_by_readmission['mean_emergency_visits'],
+      color='blue',title='Mean emergency visits',ylabel='Value',y_pos=y_pos,
+      graph_type='bar')
+
+graph(labels=labels,data=average_measurements_by_readmission['mean_number_diagnoses'],
+      color='blue',title='Mean number of diagnoses',ylabel='Value',y_pos=y_pos,
+      graph_type='bar')
+
+graph(labels=labels,data=average_measurements_by_readmission['mean_number_inpatient'],
+      color='blue',title='Mean number of inpatient visits',ylabel='Value',y_pos=y_pos,
+      graph_type='bar')
+
 
 q0 = """Select weight, 
         count (distinct patient_nbr) as total_individuals, 
@@ -185,6 +242,14 @@ weight_readmitted_patients = sqldf(q0)
 weight_readmitted_patients["percentage_of_individuals_readmitted"]= weight_readmitted_patients['readmitted_individuals']/weight_readmitted_patients['total_individuals'] * 100
 weight_readmitted_patients= weight_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
 print(weight_readmitted_patients)
+
+labels = (np.array(weight_readmitted_patients.weight))
+y_pos=np.arange(len(labels))
+
+graph(labels=labels,data=weight_readmitted_patients['percentage_of_individuals_readmitted'],
+      color='blue',title='Percentage of individuals readmitted by weight',ylabel='Percent %',y_pos=y_pos,
+      graph_type='bar')
+
 
 # Race distribution of patients against readmission within 30 days
 q1 = """Select race, 
@@ -197,6 +262,13 @@ race_readmitted_patients["percentage_of_individuals_readmitted"]= race_readmitte
 race_readmitted_patients= race_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
 print(race_readmitted_patients)
 
+labels = (np.array(race_readmitted_patients.race))
+y_pos=np.arange(len(labels))
+
+graph(labels=labels,data=race_readmitted_patients['percentage_of_individuals_readmitted'],
+      title='Percentage of individuals readmitted by weight',y_pos=y_pos,
+      graph_type='pie')
+ 
 #Gender distribution of patients against readmission within 30 days
 q2 = """Select gender, 
         count (distinct patient_nbr) as total_individuals, 
@@ -208,6 +280,14 @@ gender_readmitted_patients["percentage_of_individuals_readmitted"]= gender_readm
 gender_readmitted_patients= gender_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
 print(gender_readmitted_patients)
 
+labels = (np.array(gender_readmitted_patients.gender))
+y_pos=np.arange(len(labels))
+
+graph(labels=labels,data=gender_readmitted_patients['percentage_of_individuals_readmitted'],
+      title='Percentage of individuals readmitted by gender',y_pos=y_pos,
+      graph_type='pie')
+
+
 # Age distribution of patients against readmission within 30 days
 q3 = """Select age, 
         count (distinct patient_nbr) as total_individuals, 
@@ -218,6 +298,14 @@ age_readmitted_patients = sqldf(q3)
 age_readmitted_patients["percentage_of_individuals_readmitted"]= age_readmitted_patients['readmitted_individuals']/age_readmitted_patients['total_individuals'] * 100
 age_readmitted_patients= age_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
 print(age_readmitted_patients)
+
+labels = (np.array(age_readmitted_patients.age))
+y_pos=np.arange(len(labels))
+
+graph(labels=labels,data=age_readmitted_patients['percentage_of_individuals_readmitted'],
+      color='blue',title='Percentage of individuals readmitted by age',ylabel='Percent %',y_pos=y_pos,
+      graph_type='bar')
+
 
 # Which variables are correlated with each other?
 corr = diabetes_df[diabetes_df.columns.difference(['encounter_id', 'patient_nbr','admission_type_id',
@@ -236,6 +324,14 @@ diabetes_readmitted_patients["percentage_of_individuals_readmitted"]= diabetes_r
 diabetes_readmitted_patients= diabetes_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
 print(diabetes_readmitted_patients)
 
+labels = (np.array(diabetes_readmitted_patients.diabetesMed))
+y_pos=np.arange(len(labels))
+
+graph(labels=labels,data=diabetes_readmitted_patients['percentage_of_individuals_readmitted'],
+      color='blue',title='Percentage of individuals readmitted by diabetes medication',ylabel='Percent %',y_pos=y_pos,
+      graph_type='bar')
+
+
 # Does admission type affect readmission within 30 days?
 q5 = """Select admission_type_id_description, 
         count (distinct patient_nbr) as total_individuals, 
@@ -247,38 +343,13 @@ admission_readmitted_patients["percentage_of_individuals_readmitted"]= admission
 admission_readmitted_patients= admission_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
 print(admission_readmitted_patients)
 
-# Does discharge type affect readmission within 30 days?
-q6= """Select discharge_disposition_id_description, 
-        count (distinct patient_nbr) as total_individuals, 
-        count(distinct (case when readmitted="<30"then patient_nbr else 0 end)) as readmitted_individuals
-       from diabetes_df group by 1 
-       order by readmitted_individuals desc"""
-discharge_readmitted_patients = sqldf(q6)
-discharge_readmitted_patients["percentage_of_individuals_readmitted"]= discharge_readmitted_patients['readmitted_individuals']/discharge_readmitted_patients['total_individuals'] * 100
-discharge_readmitted_patients= discharge_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
-print(discharge_readmitted_patients)
+labels = (np.array(admission_readmitted_patients.admission_type_id_description))
+y_pos=np.arange(len(labels))
 
-# Does discharge type affect readmission within 30 days?
-q7= """Select admission_source_id_description, 
-        count (distinct patient_nbr) as total_individuals, 
-        count(distinct (case when readmitted="<30"then patient_nbr else 0 end)) as readmitted_individuals
-       from diabetes_df group by 1 
-       order by readmitted_individuals desc"""
-admission_source_readmitted_patients = sqldf(q7)
-admission_source_readmitted_patients["percentage_of_individuals_readmitted"]= admission_source_readmitted_patients['readmitted_individuals']/admission_source_readmitted_patients['total_individuals'] * 100
-admission_source_readmitted_patients= admission_source_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
-print(admission_source_readmitted_patients)
+graph(labels=labels,data=admission_readmitted_patients['percentage_of_individuals_readmitted'],
+      title='Percentage of individuals readmitted by admission type',y_pos=y_pos,
+      graph_type='pie')
 
-# Does discharge type affect readmission within 30 days?
-q8= """Select medical_specialty, 
-        count (distinct patient_nbr) as total_individuals, 
-        count(distinct (case when readmitted="<30"then patient_nbr else 0 end)) as readmitted_individuals
-       from diabetes_df group by 1 
-       order by readmitted_individuals desc"""
-medical_speciality_readmitted_patients = sqldf(q8)
-medical_speciality_readmitted_patients["percentage_of_individuals_readmitted"]= medical_speciality_readmitted_patients['readmitted_individuals']/medical_speciality_readmitted_patients['total_individuals'] * 100
-medical_speciality_readmitted_patients= medical_speciality_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
-print(medical_speciality_readmitted_patients)
 
 # Does A1cresult affect readmission within 30 days
 q9= """Select A1Cresult, 
@@ -291,6 +362,14 @@ a1c_readmitted_patients["percentage_of_individuals_readmitted"]= a1c_readmitted_
 a1c_readmitted_patients= a1c_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
 print(a1c_readmitted_patients)
 
+labels = (np.array(a1c_readmitted_patients.A1Cresult))
+y_pos=np.arange(len(labels))
+
+graph(labels=labels,data=a1c_readmitted_patients['percentage_of_individuals_readmitted'],
+      color='blue',title='Percentage of individuals readmitted by A1C result',ylabel='Percent %',y_pos=y_pos,
+      graph_type='bar')
+
+
 # Did change in medications lead to readmission?
 q10= """Select any_change, 
         count (distinct patient_nbr) as total_individuals, 
@@ -302,6 +381,14 @@ change_readmitted_patients["percentage_of_individuals_readmitted"]= change_readm
 change_readmitted_patients= change_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
 print(change_readmitted_patients)
 
+labels = (np.array(change_readmitted_patients.any_change))
+y_pos=np.arange(len(labels))
+
+graph(labels=labels,data=change_readmitted_patients['percentage_of_individuals_readmitted'],
+      title='Percentage of individuals readmitted by change in medication',y_pos=y_pos,
+      graph_type='pie')
+
+
 # Did glucose serum levels lead to readmission?
 q11= """Select max_glu_serum, 
         count (distinct patient_nbr) as total_individuals, 
@@ -312,6 +399,14 @@ gluserum_readmitted_patients = sqldf(q11)
 gluserum_readmitted_patients["percentage_of_individuals_readmitted"]= gluserum_readmitted_patients['readmitted_individuals']/gluserum_readmitted_patients['total_individuals'] * 100
 gluserum_readmitted_patients= gluserum_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
 print(gluserum_readmitted_patients)
+
+labels = (np.array(gluserum_readmitted_patients.max_glu_serum))
+y_pos=np.arange(len(labels))
+
+graph(labels=labels,data=gluserum_readmitted_patients['percentage_of_individuals_readmitted'],
+      color='blue',title='Percentage of individuals readmitted by glucose serum levels',ylabel='Percent %',y_pos=y_pos,
+      graph_type='bar')
+
 
 # Look at all different medications
 medications=['metformin', 'repaglinide', 'nateglinide', 'chlorpropamide',
@@ -327,18 +422,6 @@ diabetes_df["medications_status"] = np.where(diabetes_df[medications][diabetes_d
                              np.where(diabetes_df[medications][diabetes_df == "Down"].any(1), 'down',
                              np.where(diabetes_df[medications][diabetes_df == "No"].any(1), 'not_prescribed','unknown'))))
 
-# =============================================================================
-# medications1=['metformin', 'repaglinide', 'nateglinide', 'chlorpropamide',
-#        'glimepiride', 'acetohexamide', 'glipizide', 'glyburide', 'tolbutamide',
-#        'pioglitazone', 'rosiglitazone', 'acarbose', 'miglitol', 'troglitazone',
-#        'tolazamide', 'examide', 'citoglipton', 'insulin',
-#        'glyburide_metformin', 'glipizide_metformin',
-#        'glimepiride_pioglitazone', 'metformin_rosiglitazone',
-#        'metformin_pioglitazone','medications_status']
-# 
-# check= diabetes_df[medications1]
-# =============================================================================
-
 # Did medications_status lead to readmission?
 q12= """Select medications_status, 
         count (distinct patient_nbr) as total_individuals, 
@@ -349,6 +432,14 @@ medication_status_readmitted_patients = sqldf(q12)
 medication_status_readmitted_patients["percentage_of_individuals_readmitted"]= medication_status_readmitted_patients['readmitted_individuals']/medication_status_readmitted_patients['total_individuals'] * 100
 medication_status_readmitted_patients= medication_status_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
 print(medication_status_readmitted_patients)
+
+labels = (np.array(medication_status_readmitted_patients.medications_status))
+y_pos=np.arange(len(labels))
+
+graph(labels=labels,data=medication_status_readmitted_patients['percentage_of_individuals_readmitted'],
+      title='Percentage of individuals readmitted by medication status',y_pos=y_pos,
+      graph_type='pie')
+
 
 # Do some clustering and modeling
 # simple statical regression model to understand beta coefficients for some data points
