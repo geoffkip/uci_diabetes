@@ -9,6 +9,7 @@ Created on Thu Sep 13 23:00:27 2018
 from os import chdir
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 import pymysql
 from pandasql import sqldf
@@ -103,33 +104,106 @@ END as admission_source_id_description
 FROM hospitals.diabetes;
 """, con=conn)
 
+#Basic exploration
+diabetes_df.head()
+diabetes_df.shape
+diabetes_df.describe()
+diabetes_df.groupby("readmitted").size()
+
+#Find null or missing
+diabetes_df.isnull().sum()
+diabetes_df.isna().sum()
+
 #Exploratory analysis time 
-# Race distribution of patients against readmission
+#Mean figures medications etc
+q = """Select 
+       AVG(num_procedures) as mean_num_procedures,
+       AVG(num_medications) as mean_num_medications,
+       AVG(num_lab_procedures) as mean_num_lab_procedures,
+       AVG(time_in_hospital) as average_time_in_hospital,
+       AVG(number_outpatient) as mean_outpatient_visits,
+       AVG(number_emergency) as mean_emergency_visits,
+       AVG(number_diagnoses) as mean_number_diagnoses,
+       AVG(number_inpatient) as mean_number_inpatient
+       from diabetes_df"""
+average_measurements = sqldf(q)
+
+qb = """Select 
+       race,
+       AVG(num_procedures) as mean_num_procedures,
+       AVG(num_medications) as mean_num_medications,
+       AVG(num_lab_procedures) as mean_num_lab_procedures,
+       AVG(time_in_hospital) as average_time_in_hospital,
+       AVG(number_outpatient) as mean_outpatient_visits,
+       AVG(number_emergency) as mean_emergency_visits,
+       AVG(number_diagnoses) as mean_number_diagnoses,
+       AVG(number_inpatient) as mean_number_inpatient
+       from diabetes_df
+       group by 1"""
+average_measurements_by_race = sqldf(qb)
+
+qb = """Select 
+       readmitted,
+       AVG(num_procedures) as mean_num_procedures,
+       AVG(num_medications) as mean_num_medications,
+       AVG(num_lab_procedures) as mean_num_lab_procedures,
+       AVG(time_in_hospital) as average_time_in_hospital,
+       AVG(number_outpatient) as mean_outpatient_visits,
+       AVG(number_emergency) as mean_emergency_visits,
+       AVG(number_diagnoses) as mean_number_diagnoses,
+       AVG(number_inpatient) as mean_number_inpatient
+       from diabetes_df
+       group by 1"""
+average_measurements_by_readmission = sqldf(qb)
+
+              
+# Race distribution of patients against readmission within 30 days
 q1 = """Select race, 
         count (distinct patient_nbr) as total_individuals, 
-        count(distinct (case when readmitted=">30"then patient_nbr else 0 end)) as readmitted_individuals
+        count(distinct (case when readmitted="<30"then patient_nbr else 0 end)) as readmitted_individuals
        from diabetes_df group by 1 
        order by readmitted_individuals desc"""
 race_readmitted_patients = sqldf(q1)
 race_readmitted_patients["percentage_of_individuals_readmitted"]= race_readmitted_patients['readmitted_individuals']/race_readmitted_patients['total_individuals'] * 100
+race_readmitted_patients= race_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
 print(race_readmitted_patients)
 
-#Gender distribution of patients against readmission
+#Gender distribution of patients against readmission within 30 days
 q2 = """Select gender, 
         count (distinct patient_nbr) as total_individuals, 
-        count(distinct (case when readmitted=">30"then patient_nbr else 0 end)) as readmitted_individuals
+        count(distinct (case when readmitted="<30"then patient_nbr else 0 end)) as readmitted_individuals
        from diabetes_df group by 1 
        order by readmitted_individuals desc"""
 gender_readmitted_patients = sqldf(q2)
 gender_readmitted_patients["percentage_of_individuals_readmitted"]= gender_readmitted_patients['readmitted_individuals']/gender_readmitted_patients['total_individuals'] * 100
+gender_readmitted_patients= gender_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
 print(gender_readmitted_patients)
 
-# Age distribution of patients against readmission
+# Age distribution of patients against readmission within 30 days
 q3 = """Select age, 
         count (distinct patient_nbr) as total_individuals, 
-        count(distinct (case when readmitted=">30"then patient_nbr else 0 end)) as readmitted_individuals
+        count(distinct (case when readmitted="<30"then patient_nbr else 0 end)) as readmitted_individuals
        from diabetes_df group by 1 
        order by readmitted_individuals desc"""
 age_readmitted_patients = sqldf(q3)
 age_readmitted_patients["percentage_of_individuals_readmitted"]= age_readmitted_patients['readmitted_individuals']/age_readmitted_patients['total_individuals'] * 100
+age_readmitted_patients= age_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
 print(age_readmitted_patients)
+
+# Which variables are correlated with each other?
+corr = diabetes_df[diabetes_df.columns.difference(['encounter_id', 'patient_nbr','admission_type_id',
+                                                  'discharge_disposition_id','admission_source_id'])].corr()
+fig, ax = plt.subplots(figsize=(10,10))         # Sample figsize in inches
+sns.heatmap(corr, annot = True, ax=ax)
+
+# Is diabetes medication related to readmission within 30 days?
+q4 = """Select diabetesMed, 
+        count (distinct patient_nbr) as total_individuals, 
+        count(distinct (case when readmitted="<30"then patient_nbr else 0 end)) as readmitted_individuals
+       from diabetes_df group by 1 
+       order by readmitted_individuals desc"""
+diabetes_readmitted_patients = sqldf(q4)
+diabetes_readmitted_patients["percentage_of_individuals_readmitted"]= diabetes_readmitted_patients['readmitted_individuals']/diabetes_readmitted_patients['total_individuals'] * 100
+diabetes_readmitted_patients= diabetes_readmitted_patients.sort_values("percentage_of_individuals_readmitted",ascending=False)
+print(diabetes_readmitted_patients)
+
